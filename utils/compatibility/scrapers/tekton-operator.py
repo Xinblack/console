@@ -1,14 +1,16 @@
 """Generate Tekton Operator compatibility rows from first-party release metadata.
 
 Source policy:
-- Kubernetes compatibility comes from tektoncd/operator's README release tables,
-  where each Operator release series publishes a minimum Kubernetes minor.
+- Release-series Kubernetes floors come from tektoncd/operator's README table.
 - Exact application/chart versions are accepted only when GitHub publishes BOTH
   the normal ``vX.Y.Z`` Operator release and the paired
   ``tekton-operator-X.Y.Z`` Helm-chart release.
-- A documented minimum is expanded only through Plural's current KUBE_VERSION.
-  This records the upstream installation lower bound, not independent testing of
-  every intermediate Kubernetes minor.
+- If a version-tagged Helm chart declares a stricter ``kubernetesMinVersion``,
+  that chart-specific floor wins. This avoids overstating compatibility when the
+  release-series table is broader than the packaged chart/runtime dependency.
+- The effective lower bound is expanded only through Plural's current
+  ``KUBE_VERSION``. This records upstream-declared support boundaries, not
+  independent deployment testing of every intermediate Kubernetes minor.
 """
 
 from __future__ import annotations
@@ -19,12 +21,17 @@ from typing import Iterable
 
 from packaging.version import Version
 import requests
+import yaml
 
 from utils import current_kube_version, fetch_page, print_error, update_compatibility_info
 
 APP_NAME = "tekton-operator"
 README_URL = "https://raw.githubusercontent.com/tektoncd/operator/main/README.md"
 RELEASES_URL = "https://api.github.com/repos/tektoncd/operator/releases"
+CHART_VALUES_URL = (
+    "https://raw.githubusercontent.com/tektoncd/operator/"
+    "tekton-operator-{version}/charts/tekton-operator/values.yaml"
+)
 TARGET_FILE = "../../static/compatibilities/tekton-operator.yaml"
 OCI_MIN_VERSION = Version("0.80.0")
 
@@ -35,23 +42,20 @@ _SERIES_ROW_RE = re.compile(
 )
 _RUNTIME_TAG_RE = re.compile(r"^v(?P<version>\d+\.\d+\.\d+)$")
 _CHART_TAG_RE = re.compile(r"^tekton-operator-(?P<version>\d+\.\d+\.\d+)$")
+_KUBE_MIN_RE = re.compile(r"^v?(?P<major>\d+)\.(?P<minor>\d+)(?:\.\d+)?$")
 
 
-def _decode(content: bytes | str) -> str:
+def _decode(content: bytes | str, source: str = "Tekton Operator README") -> str:
     if isinstance(content, str):
         return content
     try:
         return content.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise ValueError("Could not decode Tekton Operator README as UTF-8") from exc
+        raise ValueError(f"Could not decode {source} as UTF-8") from exc
 
 
 def parse_minimum_kubernetes(content: bytes | str) -> dict[str, str]:
-    """Return ``operator major.minor -> minimum Kubernetes major.minor``.
-
-    Both the current-support and EOL tables are parsed so the scraper can retain
-    all documented historical series. Conflicting duplicate rows fail closed.
-    """
+    """Return ``operator major.minor -> minimum Kubernetes major.minor``."""
 
     text = _decode(content)
     result: dict[str, str] = {}
@@ -70,6 +74,31 @@ def parse_minimum_kubernetes(content: bytes | str) -> dict[str, str]:
     if not result:
         raise ValueError("Tekton Operator release compatibility table not found")
     return result
+
+
+def parse_chart_minimum(content: bytes | str) -> str | None:
+    """Parse a chart-specific Kubernetes floor from a tagged values.yaml."""
+
+    try:
+        data = yaml.safe_load(_decode(content, "Tekton Operator chart values"))
+    except yaml.YAMLError as exc:
+        raise ValueError("Could not parse Tekton Operator chart values") from exc
+
+    if not isinstance(data, dict):
+        raise ValueError("Tekton Operator chart values are empty or malformed")
+
+    value = data.get("kubernetesMinVersion")
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("Tekton Operator kubernetesMinVersion is not a string")
+
+    match = _KUBE_MIN_RE.fullmatch(value.strip())
+    if not match:
+        raise ValueError(
+            f"Invalid Tekton Operator kubernetesMinVersion: {value!r}"
+        )
+    return f"{int(match.group('major'))}.{int(match.group('minor'))}"
 
 
 def parse_release_records(pages: Iterable[list[dict]]) -> set[str]:
@@ -115,13 +144,25 @@ def expand_lower_bound(start: str, end: str) -> list[str]:
     return [f"{start_major}.{minor}" for minor in range(end_minor, start_minor - 1, -1)]
 
 
+def stricter_minimum(series_minimum: str, chart_minimum: str | None) -> str:
+    """Return the more conservative of the release-series and chart floors."""
+
+    if chart_minimum is None:
+        return series_minimum
+    series = Version(f"{series_minimum}.0")
+    chart = Version(f"{chart_minimum}.0")
+    return chart_minimum if chart > series else series_minimum
+
+
 def build_rows(
     minimums: dict[str, str],
     exact_versions: set[str],
     kube_max: str,
+    chart_minimums: dict[str, str | None] | None = None,
 ) -> list[OrderedDict[str, object]]:
     """Select the latest exact chart-backed patch for every documented series."""
 
+    chart_minimums = chart_minimums or {}
     by_series: dict[str, list[str]] = {}
     for version in exact_versions:
         try:
@@ -129,27 +170,27 @@ def build_rows(
         except Exception as exc:
             raise ValueError(f"Invalid Tekton Operator release version: {version}") from exc
         if parsed.pre or parsed.dev or parsed.local or parsed < OCI_MIN_VERSION:
-            # The current official OCI chart repository starts at v0.80.0.
-            # Older chart assets existed, but the retired git-based install path
-            # is no longer a usable Helm repository for Plural.
+            # The supported OCI chart distribution starts at v0.80.0.
             continue
         series = f"{parsed.major}.{parsed.minor}"
         if series in minimums:
             by_series.setdefault(series, []).append(version)
 
     rows: list[OrderedDict[str, object]] = []
-    for series, min_kube in minimums.items():
+    for series, series_minimum in minimums.items():
         candidates = by_series.get(series, [])
         if not candidates:
-            # Older documented releases can predate the published Helm chart.
-            # Skipping them is safer than inventing chart metadata.
+            # Older documented releases can predate the supported OCI chart path.
             continue
         latest = max(candidates, key=Version)
+        effective_minimum = stricter_minimum(
+            series_minimum, chart_minimums.get(latest)
+        )
         rows.append(
             OrderedDict(
                 [
                     ("version", latest),
-                    ("kube", expand_lower_bound(min_kube, kube_max)),
+                    ("kube", expand_lower_bound(effective_minimum, kube_max)),
                     ("requirements", []),
                     ("incompatibilities", []),
                     ("chart_version", latest),
@@ -190,6 +231,19 @@ def fetch_release_pages(max_pages: int = 10) -> list[list[dict]]:
     return pages
 
 
+def fetch_chart_minimum(version: str) -> str | None:
+    response = requests.get(
+        CHART_VALUES_URL.format(version=version),
+        timeout=20,
+        headers={"Accept": "text/plain"},
+    )
+    if response.status_code != 200:
+        raise ValueError(
+            f"Tekton Operator chart values for {version} returned HTTP {response.status_code}"
+        )
+    return parse_chart_minimum(response.content)
+
+
 def scrape() -> None:
     try:
         readme = fetch_page(README_URL)
@@ -197,10 +251,16 @@ def scrape() -> None:
             raise ValueError("Failed to fetch Tekton Operator README")
         minimums = parse_minimum_kubernetes(readme)
         exact_versions = parse_release_records(fetch_release_pages())
+        relevant_versions = {
+            version for version in exact_versions if Version(version) >= OCI_MIN_VERSION
+        }
+        chart_minimums = {
+            version: fetch_chart_minimum(version) for version in relevant_versions
+        }
         kube_max = current_kube_version()
         if not kube_max:
             raise ValueError("Plural KUBE_VERSION is unavailable")
-        rows = build_rows(minimums, exact_versions, kube_max)
+        rows = build_rows(minimums, exact_versions, kube_max, chart_minimums)
         update_compatibility_info(TARGET_FILE, rows)
     except Exception as exc:
         print_error(str(exc))
