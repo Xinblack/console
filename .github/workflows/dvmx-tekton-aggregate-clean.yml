@@ -1,0 +1,67 @@
+name: DVMX Tekton aggregate cleanup
+
+on:
+  push:
+    branches:
+      - feat/tekton-operator-compatibility
+    paths:
+      - '.github/workflows/dvmx-tekton-aggregate-clean.yml'
+
+jobs:
+  clean-aggregate:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bounty branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/tekton-operator-compatibility
+          fetch-depth: 0
+
+      - name: Rebuild aggregate as upstream base plus Tekton only
+        run: |
+          git fetch origin master
+          git show origin/master:static/compatibilities.yaml > /tmp/base-compatibilities.yaml
+          python - <<'PY'
+          from pathlib import Path
+
+          base = Path('/tmp/base-compatibilities.yaml').read_text()
+          app = Path('static/compatibilities/tekton-operator.yaml').read_text().rstrip().splitlines()
+          if not app or not app[0].startswith('icon:'):
+              raise SystemExit('unexpected Tekton per-app YAML shape')
+
+          entry = ['- ' + app[0]]
+          entry.extend('  ' + line for line in app[1:])
+          entry.append('  name: tekton-operator')
+          suffix = '\n'.join(entry) + '\n'
+
+          output = base.rstrip() + '\n' + suffix
+          Path('static/compatibilities.yaml').write_text(output)
+
+          # Exact safety property: existing aggregate bytes are preserved; only one
+          # Tekton sequence entry may be appended.
+          if not output.startswith(base.rstrip() + '\n'):
+              raise SystemExit('aggregate base changed unexpectedly')
+          if output.count('name: tekton-operator') != 1:
+              raise SystemExit('Tekton aggregate entry count is not exactly one')
+          PY
+
+      - name: Assert narrow aggregate diff
+        run: |
+          git diff --check
+          stats="$(git diff --numstat origin/master -- static/compatibilities.yaml)"
+          echo "$stats"
+          added="$(echo "$stats" | awk '{print $1}')"
+          deleted="$(echo "$stats" | awk '{print $2}')"
+          test "$deleted" = "0"
+          test "$added" -ge 20
+          test "$added" -le 30
+
+      - name: Commit narrow aggregate
+        run: |
+          git config user.name 'dvmx-bounty-workcell'
+          git config user.email 'actions@users.noreply.github.com'
+          git add static/compatibilities.yaml
+          git commit -m 'fix: limit aggregate update to Tekton Operator'
+          git push origin HEAD:feat/tekton-operator-compatibility
