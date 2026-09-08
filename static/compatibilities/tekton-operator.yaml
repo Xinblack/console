@@ -10,9 +10,11 @@ versions:
   incompatibilities: []
   summary: null
   chart_version: 0.81.1
+  images: ['ghcr.io/tektoncd/operator/operator-303303c315a48490ba6517859ef65b77:v0.81.1', 'ghcr.io/tektoncd/operator/proxy-webhook-f6167da7bc41b96a27c5529f850e63d1:v0.81.1', 'ghcr.io/tektoncd/operator/webhook-f2bb711aa8f0c0892856a4cbf6d9ddd8:v0.81.1', 'ghcr.io/tektoncd/plumbing/tkn@sha256:233de6c8b8583a34c2379fa98d42dba739146c9336e8d41b66030484357481ed']
 - version: 0.80.0
   kube: ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31', '1.30', '1.29', '1.28']
   requirements: []
   incompatibilities: []
   summary: null
   chart_version: 0.80.0
+  images: ['ghcr.io/tektoncd/operator/operator-303303c315a48490ba6517859ef65b77:v0.80.0', 'ghcr.io/tektoncd/operator/proxy-webhook-f6167da7bc41b96a27c5529f850e63d1:v0.80.0', 'ghcr.io/tektoncd/operator/webhook-f2bb711aa8f0c0892856a4cbf6d9ddd8:v0.80.0', 'ghcr.io/tektoncd/plumbing/tkn@sha256:233de6c8b8583a34c2379fa98d42dba739146c9336e8d41b66030484357481ed']
