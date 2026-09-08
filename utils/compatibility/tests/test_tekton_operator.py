@@ -60,6 +60,17 @@ class TektonOperatorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Conflicting Kubernetes minimums"):
             scraper.parse_minimum_kubernetes(fixture)
 
+    def test_parses_chart_specific_minimum(self):
+        self.assertEqual(
+            scraper.parse_chart_minimum(b'kubernetesMinVersion: "v1.34.0"\n'),
+            "1.34",
+        )
+        self.assertIsNone(scraper.parse_chart_minimum(b"operator:\n  replicas: 1\n"))
+
+    def test_invalid_chart_minimum_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "Invalid Tekton Operator kubernetesMinVersion"):
+            scraper.parse_chart_minimum(b'kubernetesMinVersion: "latest"\n')
+
     def test_release_parser_requires_runtime_and_chart_pair(self):
         pages = [[
             rel("v0.81.1"),
@@ -74,24 +85,30 @@ class TektonOperatorTests(unittest.TestCase):
             {"0.81.1", "0.79.1"},
         )
 
-    def test_selects_latest_patch_in_each_series(self):
+    def test_selects_latest_patch_and_honors_stricter_chart_floor(self):
         rows = scraper.build_rows(
             {"0.81": "1.28", "0.80": "1.28"},
             {"0.81.0", "0.81.1", "0.80.0"},
             "1.36",
+            {"0.81.1": "1.34", "0.80.0": None},
         )
         self.assertEqual([row["version"] for row in rows], ["0.81.1", "0.80.0"])
         self.assertEqual(rows[0]["chart_version"], "0.81.1")
+        self.assertEqual(rows[0]["kube"], ["1.36", "1.35", "1.34"])
         self.assertEqual(
-            rows[0]["kube"],
+            rows[1]["kube"],
             ["1.36", "1.35", "1.34", "1.33", "1.32", "1.31", "1.30", "1.29", "1.28"],
         )
 
-    def test_older_series_without_helm_release_is_not_invented(self):
+    def test_series_floor_wins_if_chart_floor_is_lower(self):
+        self.assertEqual(scraper.stricter_minimum("1.30", "1.28"), "1.30")
+
+    def test_older_series_without_supported_oci_chart_is_not_invented(self):
         rows = scraper.build_rows(
             {"0.81": "1.28", "0.79": "1.28"},
             {"0.81.1", "0.79.1"},
             "1.36",
+            {"0.81.1": "1.34"},
         )
         self.assertEqual([row["version"] for row in rows], ["0.81.1"])
 
@@ -104,9 +121,14 @@ class TektonOperatorTests(unittest.TestCase):
             rel("v0.81.1"), rel("tekton-operator-0.81.1"),
             rel("v0.80.0"), rel("tekton-operator-0.80.0"),
         ]]
+
+        def chart_min(version):
+            return "1.34" if version == "0.81.1" else None
+
         with (
             patch.object(scraper, "fetch_page", return_value=README_FIXTURE),
             patch.object(scraper, "fetch_release_pages", return_value=release_pages),
+            patch.object(scraper, "fetch_chart_minimum", side_effect=chart_min),
             patch.object(scraper, "current_kube_version", return_value="1.36"),
             patch.object(scraper, "update_compatibility_info") as update,
         ):
@@ -115,6 +137,7 @@ class TektonOperatorTests(unittest.TestCase):
         path, rows = update.call_args.args
         self.assertEqual(path, "../../static/compatibilities/tekton-operator.yaml")
         self.assertEqual([row["version"] for row in rows], ["0.81.1", "0.80.0"])
+        self.assertEqual(rows[0]["kube"], ["1.36", "1.35", "1.34"])
 
     def test_scrape_does_not_write_on_source_failure(self):
         with (
