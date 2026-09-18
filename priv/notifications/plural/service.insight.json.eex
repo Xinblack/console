@@ -1,9 +1,0 @@
-✨ We have a new insight into an issue with your service
-
-<%= @service.name %> is currently in state <%= @service.status %>
-
-Here's a brief summary of what we've found:
-
-<%= @text %>
-
-View full details: <%= Console.url("/cd/clusters/#{@service.cluster_id}/services/#{@service.id}/insights") %>

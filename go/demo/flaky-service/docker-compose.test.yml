@@ -1,8 +1,0 @@
-services:
-  flaky-service-test:
-    build:
-      context: ../../..
-      dockerfile: go/test.Dockerfile
-      args:
-        MODULE_PATH: go/demo/flaky-service
-    command: go test ./...

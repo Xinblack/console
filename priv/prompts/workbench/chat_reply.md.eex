@@ -1,3 +1,0 @@
-<%= @msg.text %>
-
-(This was a message in <%= @chat.type %>.  Be sure to react to this in <%= @chat.type %> to indicate you've seen it.  Message details are id=<%= @msg.id %>, channel=<%= @channel.text %>,channel_id=id=<%= @channel.id %>)

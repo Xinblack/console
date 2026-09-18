@@ -1,5 +1,0 @@
-<%= Console.Schema.PullRequest.icon(@pr) %> Pull request <%= @pr.status %>:
-
-<%= @pr.title %>
-
-View full PR here: <%= @pr.url %>

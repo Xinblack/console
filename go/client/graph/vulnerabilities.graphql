@@ -1,3 +1,0 @@
-mutation UpsertVulnerabilities($vulnerabilities: [VulnerabilityReportAttributes]) {
-    upsertVulnerabilities(vulnerabilities: $vulnerabilities)
-}

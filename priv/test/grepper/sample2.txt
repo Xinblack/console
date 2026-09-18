@@ -1,5 +1,0 @@
-first line
-WARN something happened
-middle line
-WARN something else
-last line

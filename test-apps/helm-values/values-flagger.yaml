@@ -1,3 +1,0 @@
-meshProvider: nginx
-prometheus:
-  install: true

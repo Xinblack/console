@@ -1,1 +1,0 @@
-Your environment has <%= @count %> new activities, log into the Plural Console here: <%= url("/") %> to see what's happening

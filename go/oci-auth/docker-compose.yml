@@ -1,5 +1,0 @@
-services:
-  oci-auth:
-    build:
-      context: ..
-      dockerfile: oci-auth/Dockerfile

@@ -1,5 +1,0 @@
-Recorded notes of progress done so far:
-
-```json
-<%= Console.clean(@notes) |> Jason.encode!() %>
-```

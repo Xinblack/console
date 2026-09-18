@@ -1,5 +1,0 @@
-<%= if length(@engine.activities) > 1 do %>
-Ok we've made some progress, let's keep going or if we've met the completion criteria, wrap up the task.
-<% else %>
-Ok, let's start working!
-<% end %>

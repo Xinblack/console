@@ -1,3 +1,0 @@
-You have a new activity in Plural!  Details below:
-
-<%= @notification.text %>

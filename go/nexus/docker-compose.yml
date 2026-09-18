@@ -1,5 +1,0 @@
-services:
-  nexus:
-    build:
-      context: .
-      dockerfile: Dockerfile
