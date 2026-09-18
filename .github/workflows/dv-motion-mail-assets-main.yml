@@ -1,0 +1,35 @@
+name: Build DV Motion Mail GIFs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "dv-motion-mail-assets/build_gifs.py"
+      - "dv-motion-mail-assets/specs.json"
+      - ".github/workflows/dv-motion-mail-assets-main.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-gifs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pillow
+      - run: python dv-motion-mail-assets/build_gifs.py
+      - run: |
+          git config user.name "DV Motion Mail Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add dv-motion-mail-assets/gifs/*.gif
+          if git diff --cached --quiet; then
+            echo "No GIF changes"
+            exit 0
+          fi
+          git commit -m "Build Motion Ideal Alpha GIF assets"
+          git push origin HEAD:master
