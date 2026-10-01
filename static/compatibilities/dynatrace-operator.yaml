@@ -10,6 +10,14 @@ versions:
   summary: null
   chart_version: 1.10.2
   images: ['public.ecr.aws/dynatrace/dynatrace-operator:v1.10.2']
+- version: 1.10.1
+  kube: ['1.37', '1.36', '1.35', '1.34', '1.33', '1.32', '1.31', '1.30', '1.29', '1.28',
+    '1.27']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.10.1
+  images: ['public.ecr.aws/dynatrace/dynatrace-operator:v1.10.1']
 - version: 1.10.0
   kube: ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31', '1.30', '1.29', '1.28', '1.27']
   requirements: []
