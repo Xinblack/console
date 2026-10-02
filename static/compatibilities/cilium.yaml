@@ -4,30 +4,12 @@ helm_repository_url: https://helm.cilium.io/
 helm_values: debug.verbose=flow
 eolApiSlug: cilium
 versions:
-- version: 1.20.1
-  kube: ['1.36', '1.35', '1.34']
+- version: 1.20.2
+  kube: ['1.37', '1.36', '1.35']
   requirements: []
   incompatibilities: []
-  summary:
-    helm_changes: "- **New/adjusted Helm values surfaced by this patch:**\n  - `envoy.httpUpstreamLingerTimeout`\
-      \ now **accepts `0`** and will be correctly templated into the Envoy config\
-      \ ConfigMap (previously `0` could be treated as \u201Cunset\u201D).\n  - `endpointPolicyUpdateTimeoutDuration`\
-      \ can now be **set via Helm** (previously not configurable from chart values).\n\
-      \n- **Potential behavior change to watch for (no action unless you rely on old\
-      \ behavior):**\n  - Envoy route idle timeout behavior is restored to use `http-idle-timeout`\
-      \ as the source again; if you had workarounds/tuning around idle timeouts, re-validate\
-      \ after upgrade."
-    chart_updates: [ClusterMesh documentation and guidance is updated/overhauled (Helm-first
-        setup and cert configuration instructions)., Fix for ClusterMesh MCS-API CRD
-        install/upgrade race when `clustermesh-apiserver` starts before the CRD version
-        is present., 'Helm templating fix so `envoy.httpUpstreamLingerTimeout: 0`
-        is rendered into the ConfigMap.', Helm support added to pass through `endpointPolicyUpdateTimeoutDuration`.]
-    features: [ClusterMesh documentation is substantially improved with Helm-first
-        setup and clearer certificate configuration guidance., Faster recovery for
-        disrupted TCP connections when accessing DSR-enabled Services (improves resiliency/perceived
-        reliability).]
-    breaking_changes: []
-  chart_version: 1.20.1
+  summary: null
+  chart_version: 1.20.2
   images: []
 - version: 1.20.0
   kube: ['1.36', '1.35', '1.34']
@@ -73,6 +55,13 @@ versions:
         from 0.3.1 to 1.0.0, which can affect clusters using custom CNI config management
         or validating CNI config schema/format.']
   chart_version: 1.20.0
+  images: []
+- version: 1.19.8
+  kube: ['1.37', '1.36', '1.35']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.19.8
   images: []
 - version: 1.19.4
   kube: ['1.36', '1.35', '1.34']
@@ -153,6 +142,15 @@ versions:
         are correctly enrolled/compatible before turning it on.]
   chart_version: 1.19.0
   images: []
+- version: 1.18.14
+  kube: ['1.37', '1.36', '1.35']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.18.14
+  images: ['quay.io/cilium/cilium-envoy:v1.37.6-1789133542-cbec91f666af0bf742da986d43832932dbb26b82@sha256:af7382699576b9e65e9184efa52eeca0b58aea70ad6e511bf260c91d9f740463',
+    'quay.io/cilium/cilium:v1.18.14@sha256:0e65a0910d74be4d56ebc8f8a010b566f9177444667dbb8eb5b2d8d840ea5406',
+    'quay.io/cilium/operator-generic:v1.18.14@sha256:6a77082c3938edad0433f53c46a90b8da08c9e4a9a255e51a1c2ff410db60104']
 - version: 1.18.10
   kube: ['1.36', '1.35', '1.34']
   requirements: []
@@ -1028,59 +1026,17 @@ versions:
   images: ['quay.io/cilium/cilium:v1.14.6@sha256:37a49f1abb333279a9b802ee8a21c61cde9dd9138b5ac55f77bdfca733ba852a',
     'quay.io/cilium/operator-generic:v1.14.6@sha256:2f0bf8fb8362c7379f3bf95036b90ad5b67378ed05cd8eb0410c1afc13423848']
   eolAt: '2025-02-04'
-- version: 1.14.2
+- version: 1.14.3
   kube: ['1.28', '1.27', '1.26']
   requirements: []
   incompatibilities: []
-  summary:
-    helm_changes: '## Helm / values changes to review
-
-      The app release notes include a few Helm-relevant behavior and value changes
-      (some are from 1.14.0; 1.14.2 itself has only a small Helm fix):
-
-
-      ### Values/behavior changes introduced in 1.14.0 (affecting upgrades from 1.14.0)
-
-      - **`authentication.mutual.spire.install.enabled` default changed to `true`.**
-      If you were not using SPIRE/mTLS, explicitly set this to `false` to avoid installing
-      extra components.
-
-      - **CNI config file management changed.** Cilium now manages the CNI config
-      file; setting **`cni.exclusive=false` disables overwriting** (useful for chaining
-      other CNIs such as Istio).
-
-      - **CNI chaining supported via `cni.chainingTarget`.** If you previously used
-      custom chaining approaches, confirm your intended chaining target.
-
-      - **Helm chart can configure `kvstoremesh`.** If you use clustermesh at scale,
-      review/enable the new `kvstoremesh` settings.
-
-      - **Helm chart changes around clustermesh CA/TLS configuration.** Notes mention
-      deprecating clustermesh CA config in favor of global CA config and simplifying
-      TLS configuration; review your `clustermesh.*` / global CA values.
-
-      - **`enableEndpointCRD` Helm option type changed from string to boolean.** If
-      you had `'
-    chart_updates: ['1.14.2 is a patch release focused on stability: multiple IPsec
-        fixes, Gateway API fixes, NodePort datapath fixes, and smaller operational
-        improvements.', 'Minor Helm chart change in 1.14.2: fixes Envoy DaemonSet
-        log level handling when multiple verbose debug groups are configured.']
-    features: ['Gateway API: support for additional/extended Gateway API features
-        (more complete feature coverage) compared to earlier 1.14.x.', 'Operational
-        visibility: `cilium status` now shows SPIRE connection information (helps
-        validate mutual-auth/SPIRE deployments).']
-    breaking_changes: ["1.14.0 had a strong warning: do not upgrade to 1.14.0 if you\
-        \ are using IPsec. For a 1.14.0 \u2192 1.14.2 target, treat IPsec as a key\
-        \ risk area and ensure you land on 1.14.2 quickly (or upgrade directly to\
-        \ 1.14.2).", 'Helm value type change: `enableEndpointCRD` changed from string
-        to boolean in 1.14.0; existing values files may fail template rendering or
-        silently misconfigure if not updated.']
-  chart_version: 1.14.2
-  images: ['quay.io/cilium/cilium:v1.14.2@sha256:6263f3a3d5d63b267b538298dbeb5ae87da3efacf09a2c620446c873ba807d35',
-    'quay.io/cilium/operator-generic:v1.14.2@sha256:52f70250dea22e506959439a7c4ea31b10fe8375db62f5c27ab746e3a2af866d']
+  summary: null
+  chart_version: 1.14.3
+  images: ['quay.io/cilium/cilium:v1.14.3@sha256:e5ca22526e01469f8d10c14e2339a82a13ad70d9a359b879024715540eef4ace',
+    'quay.io/cilium/operator-generic:v1.14.3@sha256:c9613277b72103ed36e9c0d16b9a17cafd507461d59340e432e3e9c23468b5e2']
   eolAt: '2025-02-04'
 - version: 1.14.0
-  kube: ['1.26', '1.25', '1.24']
+  kube: ['1.27', '1.26', '1.25']
   requirements: []
   incompatibilities: []
   summary:
@@ -1205,32 +1161,17 @@ versions:
   images: ['quay.io/cilium/cilium:v1.13.11@sha256:3b117c7a6be212e2723813b44b909c757b76943cb0e9fdd0ec2aa4475bfcadb5',
     'quay.io/cilium/operator-generic:v1.13.11@sha256:730e2209b8777f1525186c602f77d5f22259ec4f1f6a2e923f4c03809ab7b0b1']
   eolAt: '2024-07-24'
-- version: 1.13.7
+- version: 1.13.8
   kube: ['1.28', '1.27', '1.26']
   requirements: []
   incompatibilities: []
-  summary:
-    helm_changes: "- **1.13.2 note:** the release explicitly warns: *\u201CWhen updating\
-      \ to this release, make sure that you are using new helm chart version.\u201D\
-      * Ensure you also bump the **Cilium Helm chart** along with the app version.\n\
-      - **cert-manager users:** Helm now **mandates issuer configuration** when using\
-      \ cert-manager to generate certificates (1.13.2 bugfix note). Verify your values\
-      \ include the required issuer settings if you rely on cert-manager.\n"
-    chart_updates: [No explicit Helm chart template/structure changes were included
-        in the provided notes beyond the cert-manager issuer requirement and the general
-        reminder to use the matching chart version.]
-    features: ['Better observability for NAT map allocation drops: Cilium now reports
-        the kernel error code when drops occur due to failures creating NAT map entries
-        (1.13.7).', 'BGP operations visibility: `cilium bgp peers` now shows operational
-        state of BGP peers (1.13.2).', 'Host routing/fast-forward support expanded:
-        fast-forward (BPF host routing) can work on L2-less devices (1.13.2).']
-    breaking_changes: []
-  chart_version: 1.13.7
-  images: ['quay.io/cilium/cilium:v1.13.7@sha256:3b084617febd708aa9d88de2472c6faf9aee71884112725e8511bca628ce5cf1',
-    'quay.io/cilium/operator-generic:v1.13.7@sha256:0ec1bc5d9ecc444a890aaa2e0f397e77d15f1832910f1c20be3adc535688baba']
+  summary: null
+  chart_version: 1.13.8
+  images: ['quay.io/cilium/cilium:v1.13.8@sha256:774f0f11e171a96b59158884e0151eb522a2cf3fe23a7af7a140ae31ac30271b',
+    'quay.io/cilium/operator-generic:v1.13.8@sha256:324d17fa59f9a5fa5f957f088567cb66f15d8771880f6ced755e79e8e4b085fd']
   eolAt: '2024-07-24'
 - version: 1.13.0
-  kube: ['1.26', '1.25', '1.24']
+  kube: ['1.27', '1.26', '1.25']
   requirements: []
   incompatibilities: []
   summary:
@@ -1306,23 +1247,22 @@ versions:
   chart_version: 1.12.18
   images: ['quay.io/cilium/cilium:v1.12.18@sha256:71218d52b2b9a63525e31e9be716810605696cbc02008e658953212f638d6b6b',
     'quay.io/cilium/operator-generic:v1.12.18@sha256:ac9b8a95d6faddacc1bca4145562c5143543dfbbc41b244383b52b8be83238ab']
-- version: 1.12.14
+- version: 1.12.15
   kube: ['1.28', '1.27', '1.26']
   requirements: []
   incompatibilities: []
-  summary:
-    helm_changes: ''
-    chart_updates: ["No Helm chart changelog was provided in the notes you pasted,\
-        \ so I can\u2019t list exact chart/values changes for 1.12.9\u21921.12.14\
-        \ from source material here.", 'From the v1.12.9 release notes: when updating
-        to 1.12.9 you must also use the corresponding new Helm chart version (implies
-        chart/version coupling; verify chart version for 1.12.14 in the Cilium Helm
-        chart release notes).']
-    features: []
-    breaking_changes: []
-  chart_version: 1.12.14
-  images: ['quay.io/cilium/cilium:v1.12.14@sha256:a54b28a5c15e14f3491c772ca7cfa86266a2b1efb85326bc1ab6c95b91aeaa77',
-    'quay.io/cilium/operator-generic:v1.12.14@sha256:b9ce66384c74f79a2982ef3a4602f649d49e9b8b79b58db5faa344c7451cb7c9']
+  summary: null
+  chart_version: 1.12.15
+  images: ['quay.io/cilium/cilium:v1.12.15@sha256:24c4c9d756b2467ec20475309b68d640cdf91aa0008e136a826197590f028cca',
+    'quay.io/cilium/operator-generic:v1.12.15@sha256:ef8acf5b11f033032b55e2ece07179d925bfcb6f0cb501a898fdc031bad900ea']
+- version: 1.12.5
+  kube: ['1.27', '1.26', '1.25']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.12.5
+  images: ['quay.io/cilium/cilium:v1.12.5@sha256:06ce2b0a0a472e73334a7504ee5c5d8b2e2d7b72ef728ad94e564740dd505be5',
+    'quay.io/cilium/operator-generic:v1.12.5@sha256:b296eb7f0f7656a5cc19724f40a8a7121b7fd725278b7d61dc91fe0b7ffd7c0e']
 - version: 1.12.0
   kube: ['1.26', '1.25', '1.24']
   requirements: []
@@ -1383,6 +1323,14 @@ versions:
   chart_version: 1.12.0
   images: ['quay.io/cilium/cilium:v1.12.0@sha256:079baa4fa1b9fe638f96084f4e0297c84dd4fb215d29d2321dcbe54273f63ade',
     'quay.io/cilium/operator-generic:v1.12.0@sha256:bb2a42eda766e5d4a87ee8a5433f089db81b72dd04acf6b59fcbb445a95f9410']
+- version: 1.11.13
+  kube: ['1.27', '1.26', '1.25']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.11.13
+  images: ['quay.io/cilium/cilium:v1.11.13@sha256:cc5212dd709d1fadf19ffeae602d2af54d03634791f0f1a7e3bab0bd263918a1',
+    'quay.io/cilium/operator-generic:v1.11.13@sha256:a34fc3d5007201bdfe7fc3a469351dc6b9f190720ea54622f94cdfb0b28c6726']
 - version: 1.11.6
   kube: ['1.26', '1.25', '1.24']
   requirements: []
@@ -1568,6 +1516,14 @@ versions:
   chart_version: 1.11.0
   images: ['quay.io/cilium/cilium:v1.11.0@sha256:ea677508010800214b0b5497055f38ed3bff57963fa2399bcb1c69cf9476453a',
     'quay.io/cilium/operator-generic:v1.11.0@sha256:b522279577d0d5f1ad7cadaacb7321d1b172d8ae8c8bc816e503c897b420cfe3']
+- version: 1.10.19
+  kube: ['1.27', '1.26', '1.25']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.10.19
+  images: ['quay.io/cilium/cilium:v1.10.19@sha256:63c76e5c2317b22f9e11c5d30f1b799cd19eb88649c03941f66dbd9b8f487f15',
+    'quay.io/cilium/operator-generic:v1.10.19@sha256:d09f5ca4738bb9190c977f4ffed77e2aec2eae50db2a75368cbcc3f8f7ab6708']
 - version: 1.10.12
   kube: ['1.26', '1.25', '1.24']
   requirements: []
