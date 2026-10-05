@@ -404,9 +404,7 @@ versions:
         \ to Application Profile in 1.24.0; any workflows or expectations tied to\
         \ SBOM-based relevancy may change and should be validated post-upgrade."]
   chart_version: 1.24.0
-  images: ['quay.io/kubescape/kubescape:v3.0.22', 'quay.io/kubescape/kubevuln:v0.3.48',
-    'quay.io/kubescape/node-agent:v0.2.204', 'quay.io/kubescape/operator:v0.2.55',
-    'quay.io/kubescape/storage:v0.0.146']
+  images: []
 - version: 1.23.4
   kube: ['1.32', '1.31', '1.30']
   requirements: []
@@ -619,8 +617,15 @@ versions:
     breaking_changes: []
   chart_version: 1.16.0
   images: []
-- version: 1.15.0
+- version: 1.15.3
   kube: ['1.28', '1.27', '1.26']
+  requirements: []
+  incompatibilities: []
+  summary: null
+  chart_version: 1.15.3
+  images: []
+- version: 1.15.0
+  kube: ['1.27', '1.26', '1.25']
   requirements: []
   incompatibilities: []
   summary:
